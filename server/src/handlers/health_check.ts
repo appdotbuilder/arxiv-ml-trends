@@ -1,20 +1,32 @@
+import { db } from '../db';
+import { sql } from 'drizzle-orm';
 import { type HealthCheck } from '../schema';
 
 /**
  * Returns health status of the service for monitoring and load balancer checks.
- * Can be extended to check database connectivity and external service health.
+ * Verifies database connectivity and essential service components.
  */
 export async function healthCheck(): Promise<HealthCheck> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to provide service health status.
-    
-    // Should implement:
-    // 1. Check database connectivity
-    // 2. Verify essential environment variables
-    // 3. Test external API connectivity (optional)
-    // 4. Return health status
-    
+  try {
+    // Test database connectivity with a simple query
+    await db.execute(sql`SELECT 1 as health_check`);
+
+    // Verify essential environment variables exist (in production)
+    // In test environment, database connection is managed differently
+    if (process.env.NODE_ENV !== 'test') {
+      const requiredEnvVars = ['DATABASE_URL'];
+      for (const envVar of requiredEnvVars) {
+        if (!process.env[envVar]) {
+          throw new Error(`Missing required environment variable: ${envVar}`);
+        }
+      }
+    }
+
     return {
-        status: "ok"
+      status: "ok"
     };
+  } catch (error) {
+    console.error('Health check failed:', error);
+    throw error;
+  }
 }
